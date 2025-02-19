@@ -65,57 +65,31 @@ fn save_node_id(node_id: &str) -> std::io::Result<()> {
 }
 
 pub async fn run_initial_setup() -> SetupResult {
-    // Get home directory and check for prover-id file
     let home_path = home::home_dir().expect("Failed to determine home directory");
 
-    //If the .nexus directory doesn't exist, we need to create it
     let nexus_dir = home_path.join(".nexus");
     if !nexus_dir.exists() {
         create_nexus_directory(&nexus_dir).expect("Failed to create .nexus directory");
     }
-
-    //Check if the node-id file exists, use it. If not, create a new one.
-    let node_id_path = home_path.join(".nexus").join("node-id");
-    let node_id = fs::read_to_string(&node_id_path).unwrap_or_default();
-
+    let node_id_path = nexus_dir.join("node-id");
     if node_id_path.exists() {
+        let node_id = fs::read_to_string(&node_id_path).unwrap_or_default();
         println!(
             "\nThis node is already connected to an account using node id: {}",
             node_id
         );
-
-        //ask the user if they want to use the existing config
-        println!("Do you want to use the existing user account? (y/n)");
-        let mut use_existing_config = String::new();
-        std::io::stdin()
-            .read_line(&mut use_existing_config)
-            .unwrap();
-        let use_existing_config = use_existing_config.trim();
-        if use_existing_config == "y" {
-            match fs::read_to_string(&node_id_path) {
-                Ok(content) => {
-                    println!("\nUsing existing node ID: {}", content.trim());
-                    return SetupResult::Connected(content.trim().to_string());
-                }
-                Err(e) => {
-                    println!("{}", format!("Failed to read node-id file: {}", e).red());
-                    return SetupResult::Invalid;
-                }
-            }
-        } else {
-            println!("Ignoring existing user account...");
-        }
+        println!("\nUsing existing node ID: {}", node_id.trim());
+        return SetupResult::Connected(node_id.trim().to_string());
     }
 
     println!("\nThis node is not connected to any account.\n");
     println!("[1] Enter '1' to start proving without earning NEX");
-    println!("[2] Enter '2' to start earning NEX by connecting adding your node ID");
+    println!("[2] Enter '2' to start earning NEX by connecting your node ID");
 
     let mut option = String::new();
     std::io::stdin().read_line(&mut option).unwrap();
     let option = option.trim();
 
-    //if no config file exists, ask the user to enter their email
     match option {
         "1" => {
             println!("You chose option 1\n");
@@ -153,6 +127,7 @@ pub async fn run_initial_setup() -> SetupResult {
         }
     }
 }
+
 
 pub fn clear_user_config() -> std::io::Result<()> {
     // Clear prover-id file
